@@ -568,7 +568,13 @@ function fetchGitHubFileList() {
       const existsPrevious = previousValue && xlsxNames.some(name => encodeURIComponent(name) === previousValue);
       gitFileSel.value = existsPrevious ? previousValue : '';
       gitListLoadedAt = Date.now();
-      updateStatus('GitHubのExcel候補を更新しました。候補を選ぶと読み込みます。');
+      const target = xlsxNames[0];
+      if (target) {
+        gitFileSel.value = encodeURIComponent(target);
+        loadFromGitHub(target);
+      } else {
+        updateStatus('GitHubのExcel候補を更新しました。候補を選ぶと読み込みます。');
+      }
     })
     .catch(() => { gitFileSel.innerHTML='<option value="">⚠️ 候補更新失敗</option>'; })
     .finally(() => { gitListLoading = false; });

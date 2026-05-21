@@ -1010,7 +1010,13 @@
         else if (encodedRequested) gitFileSelector.value = encodedRequested;
         else gitFileSelector.value = '';
         gitListLoadedAt = Date.now();
-        updateStatus('GitHubのExcel候補を更新しました。候補を選ぶと読み込みます。');
+        const target = requested || xlsxNames[0];
+        if (target) {
+          gitFileSelector.value = encodeURIComponent(target);
+          loadFromGitHub(target);
+        } else {
+          updateStatus('GitHubのExcel候補を更新しました。候補を選ぶと読み込みます。');
+        }
       })
       .catch(err => {
         gitFileSelector.innerHTML = '<option value="">⚠️ 候補更新失敗</option>';
@@ -1110,7 +1116,7 @@
     this.value = '';
   });
 
-  // ページ読み込み時は候補だけ取得し、選択された時だけ読み込む
+  // ページ読み込み時は一番上のExcelを自動で読み込む
   fetchGitHubFileList();
 
   sheetSelector.addEventListener('change', function() {
