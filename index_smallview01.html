@@ -6,11 +6,12 @@
 <title>上野清掃2.1 Small View</title>
 <style>
   * { box-sizing: border-box; }
+  :root { --smallview-bg: #edf3f8; }
   html, body {
     margin: 0;
     height: 100%;
     font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
-    background: #edf3f8;
+    background: var(--smallview-bg);
     color: #172033;
     -webkit-text-size-adjust: 100%;
   }
@@ -19,7 +20,7 @@
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    background: #edf3f8;
+    background: var(--smallview-bg);
   }
   .topbar {
     flex: 0 0 auto;
@@ -88,7 +89,8 @@
   }
   .tool-inner::-webkit-scrollbar { display: none; }
   .tool-btn,
-  .tool-select {
+  .tool-select,
+  .color-picker {
     flex: 0 0 auto;
     min-height: 36px;
     border: 1px solid #b8cce4;
@@ -102,6 +104,32 @@
     white-space: nowrap;
   }
   .tool-btn { cursor: pointer; }
+  .color-picker {
+    width: 44px;
+    min-width: 44px;
+    padding: 3px;
+    cursor: pointer;
+  }
+  .color-presets {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 6px;
+    align-items: center;
+  }
+  .color-swatch {
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(49, 80, 111, 0.30);
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.75), 0 1px 3px rgba(15, 74, 128, 0.15);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .color-swatch.active {
+    border-color: #0f4a80;
+    box-shadow: 0 0 0 2px rgba(26, 110, 181, 0.20);
+  }
   .tool-btn.register {
     background: #1a6eb5;
     border-color: #0f4a80;
@@ -130,7 +158,7 @@
     min-height: 0;
     position: relative;
     overflow: hidden;
-    background: #edf3f8;
+    background: var(--smallview-bg);
   }
   .window-grid {
     position: absolute;
@@ -273,6 +301,8 @@
         <option value="">削除するWindowを選択</option>
       </select>
       <button class="tool-btn delete" type="button" id="deleteWindowBtn">削除</button>
+      <input class="color-picker" type="color" id="bgColorPicker" value="#edf3f8" title="背景色">
+      <div class="color-presets" id="bgColorPresets" aria-label="背景色候補"></div>
     </div>
     <button class="tool-toggle" type="button" id="toolToggle">▼ 開く</button>
   </section>
@@ -299,6 +329,9 @@ const GITHUB_FILES = [
 const GITHUB_HTML_API = 'https://api.github.com/repos/congfing/uenoseisou2.1/contents/';
 const APP_VERSION = '20260521-smallview01';
 const STORAGE_KEY = 'ueno21_smallview_custom_windows';
+const BG_COLOR_KEY = 'ueno21_smallview_bg_color';
+const DEFAULT_BG_COLOR = '#edf3f8';
+const BG_COLOR_PRESETS = ['#edf3f8', '#f3f7ef', '#fff4df', '#f6edf8', '#eef7f8', '#f5f5f5'];
 
 const windowGrid = document.getElementById('windowGrid');
 const overviewBtn = document.getElementById('overviewBtn');
@@ -309,6 +342,8 @@ const githubFileSelect = document.getElementById('githubFileSelect');
 const registerWindowBtn = document.getElementById('registerWindowBtn');
 const deleteWindowSelect = document.getElementById('deleteWindowSelect');
 const deleteWindowBtn = document.getElementById('deleteWindowBtn');
+const bgColorPicker = document.getElementById('bgColorPicker');
+const bgColorPresets = document.getElementById('bgColorPresets');
 
 const cards = new Map();
 let APPS = [...DEFAULT_APPS, ...loadCustomWindows()];
@@ -318,6 +353,14 @@ function safeStorageSet(key, value) {
   try {
     localStorage.setItem(key, value);
   } catch (error) {}
+}
+
+function safeStorageGet(key, fallback) {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch (error) {
+    return fallback;
+  }
 }
 
 function loadCustomWindows() {
@@ -401,6 +444,30 @@ function showOverview() {
 function setPanelOpen(open) {
   toolPanel.classList.toggle('collapsed', !open);
   toolToggle.textContent = open ? '▲ 閉じる' : '▼ 開く';
+}
+
+function applyBgColor(color) {
+  const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_BG_COLOR;
+  document.documentElement.style.setProperty('--smallview-bg', safeColor);
+  bgColorPicker.value = safeColor;
+  safeStorageSet(BG_COLOR_KEY, safeColor);
+  bgColorPresets.querySelectorAll('.color-swatch').forEach((button) => {
+    button.classList.toggle('active', button.dataset.color.toLowerCase() === safeColor.toLowerCase());
+  });
+}
+
+function buildColorPresets() {
+  bgColorPresets.innerHTML = '';
+  BG_COLOR_PRESETS.forEach((color) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'color-swatch';
+    button.dataset.color = color;
+    button.style.background = color;
+    button.title = color;
+    button.addEventListener('click', () => applyBgColor(color));
+    bgColorPresets.appendChild(button);
+  });
 }
 
 function fillGithubFiles() {
@@ -518,7 +585,10 @@ githubFileSelect.addEventListener('change', () => {
 });
 registerWindowBtn.addEventListener('click', registerWindow);
 deleteWindowBtn.addEventListener('click', deleteWindow);
+bgColorPicker.addEventListener('input', () => applyBgColor(bgColorPicker.value));
 
+buildColorPresets();
+applyBgColor(safeStorageGet(BG_COLOR_KEY, DEFAULT_BG_COLOR));
 fillGithubFiles();
 renderWindows();
 showOverview();
