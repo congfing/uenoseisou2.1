@@ -245,6 +245,7 @@ const GITHUB_FILES = [
   { title: '列選択', href: 'index_2-4_colview.html' },
   { title: 'メモ', href: 'index_5-1.html' }
 ];
+const GITHUB_HTML_API = 'https://api.github.com/repos/congfing/uenoseisou2.1/contents/';
 
 const tabsEl = document.getElementById('tabs');
 const stageEl = document.getElementById('stage');
@@ -365,7 +366,31 @@ function setPanelOpen(open) {
 }
 
 function fillGithubFiles() {
-  GITHUB_FILES.forEach((file) => {
+  setGithubOptions(GITHUB_FILES);
+  githubFileSelect.querySelector('option').textContent = 'GitHub HTML読込中...';
+  fetch(GITHUB_HTML_API + '?t=' + Date.now())
+    .then((response) => {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    })
+    .then((files) => {
+      const htmlFiles = files
+        .filter((file) => file.type === 'file' && /\.html?$/i.test(file.name))
+        .map((file) => ({
+          title: file.name.replace(/\.html?$/i, ''),
+          href: file.name
+        }))
+        .sort((a, b) => a.href.localeCompare(b.href, 'ja'));
+      setGithubOptions(htmlFiles.length ? htmlFiles : GITHUB_FILES);
+    })
+    .catch(() => {
+      setGithubOptions(GITHUB_FILES);
+    });
+}
+
+function setGithubOptions(files) {
+  githubFileSelect.innerHTML = '<option value="">GitHubからHTMLを追加</option>';
+  files.forEach((file) => {
     const option = document.createElement('option');
     option.value = file.href;
     option.textContent = file.title;
@@ -448,6 +473,7 @@ githubFileSelect.addEventListener('change', () => {
   const option = githubFileSelect.selectedOptions[0];
   const title = option?.dataset.title || option?.textContent || githubFileSelect.value;
   addCustomTab(title, githubFileSelect.value);
+  githubFileSelect.value = '';
 });
 registerTabBtn.addEventListener('click', registerTab);
 deleteTabBtn.addEventListener('click', deleteActiveTab);
