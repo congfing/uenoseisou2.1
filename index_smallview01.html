@@ -130,6 +130,46 @@
     border-color: #0f4a80;
     box-shadow: 0 0 0 2px rgba(26, 110, 181, 0.20);
   }
+  .effect-tools {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    padding-left: 4px;
+  }
+  .effect-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 1px solid #b8cce4;
+    border-radius: 10px;
+    background: #fff;
+    color: #31506f;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .effect-check input {
+    width: 15px;
+    height: 15px;
+    accent-color: #1a6eb5;
+  }
+  .effect-range {
+    width: 82px;
+    accent-color: #1a6eb5;
+  }
+  .effect-color {
+    width: 34px;
+    min-width: 34px;
+    min-height: 36px;
+    padding: 3px;
+    border: 1px solid #b8cce4;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+  }
   .tool-btn.register {
     background: #1a6eb5;
     border-color: #0f4a80;
@@ -292,6 +332,7 @@
   </header>
   <section class="tool-panel collapsed" id="toolPanel">
     <div class="tool-inner">
+      <button class="tool-btn" type="button" id="gdriveBtn">GDrive</button>
       <button class="tool-btn" type="button" id="addEditorBtn">Editorを追加</button>
       <select class="tool-select" id="githubFileSelect" title="GitHubのHTMLを選択">
         <option value="">GitHubからHTMLを追加</option>
@@ -303,6 +344,24 @@
       <button class="tool-btn delete" type="button" id="deleteWindowBtn">削除</button>
       <input class="color-picker" type="color" id="bgColorPicker" value="#edf3f8" title="背景色">
       <div class="color-presets" id="bgColorPresets" aria-label="背景色候補"></div>
+      <div class="effect-tools" aria-label="Shadow設定">
+        <label class="effect-check"><input type="checkbox" id="fxShadowEnable">Shadow</label>
+        <select class="tool-select" id="fxShadowPreset" title="影の形">
+          <option value="float">浮き上がり</option>
+          <option value="bottom">下方向</option>
+          <option value="right">右下</option>
+          <option value="glow">グロー</option>
+          <option value="outline">縁取り</option>
+          <option value="3d">3D</option>
+        </select>
+        <input class="effect-range" type="range" id="fxShadowBlur" min="0" max="30" value="6" title="ぼかし">
+        <input class="effect-range" type="range" id="fxShadowOffset" min="0" max="15" value="2" title="距離">
+        <input class="effect-color" type="color" id="fxShadowColor" value="#000000" title="影の色">
+        <label class="effect-check"><input type="checkbox" id="fxGradientEnable">文字背景</label>
+        <label class="effect-check"><input type="checkbox" id="fxBgEnable">背景透過</label>
+        <input class="effect-range" type="range" id="fxBgOpacity" min="0" max="100" value="82" title="背景透明度">
+        <button class="tool-btn" type="button" id="fxResetBtn">解除</button>
+      </div>
     </div>
     <button class="tool-toggle" type="button" id="toolToggle">▼ 開く</button>
   </section>
@@ -330,6 +389,7 @@ const GITHUB_HTML_API = 'https://api.github.com/repos/congfing/uenoseisou2.1/con
 const APP_VERSION = '20260521-smallview01';
 const STORAGE_KEY = 'ueno21_smallview_custom_windows';
 const BG_COLOR_KEY = 'ueno21_smallview_bg_color';
+const EFFECT_KEY = 'ueno21_smallview_effect_settings';
 const DEFAULT_BG_COLOR = '#edf3f8';
 const BG_COLOR_PRESETS = ['#edf3f8', '#f3f7ef', '#fff4df', '#f6edf8', '#eef7f8', '#f5f5f5'];
 
@@ -337,6 +397,7 @@ const windowGrid = document.getElementById('windowGrid');
 const overviewBtn = document.getElementById('overviewBtn');
 const toolPanel = document.getElementById('toolPanel');
 const toolToggle = document.getElementById('toolToggle');
+const gdriveBtn = document.getElementById('gdriveBtn');
 const addEditorBtn = document.getElementById('addEditorBtn');
 const githubFileSelect = document.getElementById('githubFileSelect');
 const registerWindowBtn = document.getElementById('registerWindowBtn');
@@ -344,6 +405,15 @@ const deleteWindowSelect = document.getElementById('deleteWindowSelect');
 const deleteWindowBtn = document.getElementById('deleteWindowBtn');
 const bgColorPicker = document.getElementById('bgColorPicker');
 const bgColorPresets = document.getElementById('bgColorPresets');
+const fxShadowEnable = document.getElementById('fxShadowEnable');
+const fxShadowPreset = document.getElementById('fxShadowPreset');
+const fxShadowBlur = document.getElementById('fxShadowBlur');
+const fxShadowOffset = document.getElementById('fxShadowOffset');
+const fxShadowColor = document.getElementById('fxShadowColor');
+const fxGradientEnable = document.getElementById('fxGradientEnable');
+const fxBgEnable = document.getElementById('fxBgEnable');
+const fxBgOpacity = document.getElementById('fxBgOpacity');
+const fxResetBtn = document.getElementById('fxResetBtn');
 
 const cards = new Map();
 let APPS = [...DEFAULT_APPS, ...loadCustomWindows()];
@@ -404,6 +474,9 @@ function createWindow(app) {
   frame.className = 'window-frame';
   frame.title = app.title;
   frame.src = withEmbeddedParam(app.href);
+  frame.addEventListener('load', () => {
+    setTimeout(applyEffectsToAllWindows, 120);
+  });
 
   card.appendChild(title);
   card.appendChild(frame);
@@ -468,6 +541,169 @@ function buildColorPresets() {
     button.addEventListener('click', () => applyBgColor(color));
     bgColorPresets.appendChild(button);
   });
+}
+
+function hexToRgb(hex) {
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16)
+  };
+}
+
+function generateTextShadow(preset, blur, offset, color, alpha) {
+  const { r, g, b } = hexToRgb(color);
+  const a = alpha / 100;
+  const rgba = (mult = 1) => `rgba(${r},${g},${b},${a * mult})`;
+  switch (preset) {
+    case 'bottom':
+      return `${Math.round(offset / 2)}px ${offset}px ${blur}px ${rgba()}`;
+    case 'right':
+      return `${offset}px ${offset}px ${blur}px ${rgba()}`;
+    case 'glow':
+      return [`0 0 ${blur}px ${rgba()}`, `0 0 ${blur * 2}px ${rgba(0.6)}`, `0 0 ${blur * 3}px ${rgba(0.3)}`].join(', ');
+    case 'outline':
+      return [`${offset}px 0 0 ${rgba()}`, `-${offset}px 0 0 ${rgba()}`, `0 ${offset}px 0 ${rgba()}`, `0 -${offset}px 0 ${rgba()}`].join(', ');
+    case '3d': {
+      const shadows = [];
+      const depth = Math.max(3, offset);
+      for (let i = 1; i <= depth; i++) shadows.push(`${i}px ${i}px 0 ${rgba(0.9 - (i / depth) * 0.3)}`);
+      shadows.push(`${depth + 2}px ${depth + 2}px ${blur}px ${rgba(0.5)}`);
+      return shadows.join(', ');
+    }
+    case 'float':
+    default:
+      return [`${offset}px ${offset}px ${blur}px ${rgba()}`, `-${offset}px ${offset}px ${blur}px ${rgba(0.6)}`, `0 ${offset * 1.5}px ${blur * 1.5}px ${rgba(0.8)}`].join(', ');
+  }
+}
+
+function getEffectSettings() {
+  return {
+    shadowEnable: fxShadowEnable.checked,
+    shadowPreset: fxShadowPreset.value,
+    shadowBlur: fxShadowBlur.value,
+    shadowOffset: fxShadowOffset.value,
+    shadowColor: fxShadowColor.value,
+    gradientEnable: fxGradientEnable.checked,
+    bgEnable: fxBgEnable.checked,
+    bgOpacity: fxBgOpacity.value
+  };
+}
+
+function saveEffectSettings() {
+  safeStorageSet(EFFECT_KEY, JSON.stringify(getEffectSettings()));
+}
+
+function loadEffectSettings() {
+  let settings = {};
+  try {
+    settings = JSON.parse(localStorage.getItem(EFFECT_KEY) || '{}');
+  } catch (error) {
+    settings = {};
+  }
+  fxShadowEnable.checked = !!settings.shadowEnable;
+  if (settings.shadowPreset) fxShadowPreset.value = settings.shadowPreset;
+  if (settings.shadowBlur !== undefined) fxShadowBlur.value = settings.shadowBlur;
+  if (settings.shadowOffset !== undefined) fxShadowOffset.value = settings.shadowOffset;
+  if (settings.shadowColor) fxShadowColor.value = settings.shadowColor;
+  fxGradientEnable.checked = !!settings.gradientEnable;
+  fxBgEnable.checked = !!settings.bgEnable;
+  if (settings.bgOpacity !== undefined) fxBgOpacity.value = settings.bgOpacity;
+}
+
+function resetEffectsInDocument(doc) {
+  if (!doc) return;
+  doc.querySelectorAll('[data-ueno-bg-opacity]').forEach((el) => {
+    el.style.removeProperty('background-color');
+    delete el.dataset.uenoBgOpacity;
+  });
+  doc.querySelectorAll('[data-ueno-text-shadow]').forEach((el) => {
+    el.style.removeProperty('text-shadow');
+    delete el.dataset.uenoTextShadow;
+  });
+  doc.querySelectorAll('[data-ueno-text-gradient]').forEach((el) => {
+    el.style.removeProperty('background-image');
+    el.style.removeProperty('padding');
+    el.style.removeProperty('border-radius');
+    if (el.dataset.uenoGradientDisplay) {
+      el.style.removeProperty('display');
+      delete el.dataset.uenoGradientDisplay;
+    }
+    delete el.dataset.uenoTextGradient;
+  });
+}
+
+function applyEffectsToDocument(doc, settings) {
+  if (!doc || !doc.body) return;
+  resetEffectsInDocument(doc);
+
+  if (settings.bgEnable) {
+    const opacity = parseInt(settings.bgOpacity, 10) / 100;
+    doc.querySelectorAll('*').forEach((el) => {
+      const style = doc.defaultView.getComputedStyle(el);
+      const bg = style.backgroundColor;
+      if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') return;
+      const rgb = bg.match(/\d+/g);
+      if (!rgb || rgb.length < 3) return;
+      el.style.setProperty('background-color', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity})`, 'important');
+      el.dataset.uenoBgOpacity = 'true';
+    });
+  }
+
+  if (settings.shadowEnable) {
+    const shadow = generateTextShadow(
+      settings.shadowPreset || 'float',
+      parseInt(settings.shadowBlur, 10) || 6,
+      parseInt(settings.shadowOffset, 10) || 2,
+      settings.shadowColor || '#000000',
+      55
+    );
+    doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, span, a, li, td, th, div, label, button').forEach((el) => {
+      const hasText = Array.from(el.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      if (!hasText) return;
+      el.style.setProperty('text-shadow', shadow, 'important');
+      el.dataset.uenoTextShadow = 'true';
+    });
+  }
+
+  if (settings.gradientEnable) {
+    const gradient = 'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.20) 36%, rgba(0,0,0,0.22) 100%)';
+    doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, span, a, li, td, th, label, button').forEach((el) => {
+      const hasText = Array.from(el.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      if (!hasText) return;
+      el.style.setProperty('background-image', gradient, 'important');
+      el.style.setProperty('padding', '3px', 'important');
+      el.style.setProperty('border-radius', '0', 'important');
+      if (doc.defaultView.getComputedStyle(el).display === 'inline') {
+        el.style.setProperty('display', 'inline-block', 'important');
+        el.dataset.uenoGradientDisplay = 'true';
+      }
+      el.dataset.uenoTextGradient = 'true';
+    });
+  }
+}
+
+function forEachWindowDocument(callback) {
+  cards.forEach((card) => {
+    const frame = card.querySelector('.window-frame');
+    try {
+      if (frame && frame.contentDocument) callback(frame.contentDocument);
+    } catch (error) {}
+  });
+}
+
+function applyEffectsToAllWindows() {
+  const settings = getEffectSettings();
+  saveEffectSettings();
+  forEachWindowDocument((doc) => applyEffectsToDocument(doc, settings));
+}
+
+function resetEffectsAllWindows() {
+  fxShadowEnable.checked = false;
+  fxGradientEnable.checked = false;
+  fxBgEnable.checked = false;
+  saveEffectSettings();
+  forEachWindowDocument(resetEffectsInDocument);
 }
 
 function fillGithubFiles() {
@@ -569,6 +805,9 @@ function deleteWindow() {
 }
 
 overviewBtn.addEventListener('click', showOverview);
+gdriveBtn.addEventListener('click', () => {
+  window.open('https://drive.google.com/drive/my-drive', '_blank', 'noopener');
+});
 toolToggle.addEventListener('click', () => {
   setPanelOpen(toolPanel.classList.contains('collapsed'));
 });
@@ -586,12 +825,20 @@ githubFileSelect.addEventListener('change', () => {
 registerWindowBtn.addEventListener('click', registerWindow);
 deleteWindowBtn.addEventListener('click', deleteWindow);
 bgColorPicker.addEventListener('input', () => applyBgColor(bgColorPicker.value));
+[fxShadowEnable, fxShadowPreset, fxShadowBlur, fxShadowOffset, fxShadowColor, fxGradientEnable, fxBgEnable, fxBgOpacity].forEach((control) => {
+  control.addEventListener('input', applyEffectsToAllWindows);
+  control.addEventListener('change', applyEffectsToAllWindows);
+});
+fxResetBtn.addEventListener('click', resetEffectsAllWindows);
 
 buildColorPresets();
 applyBgColor(safeStorageGet(BG_COLOR_KEY, DEFAULT_BG_COLOR));
+loadEffectSettings();
 fillGithubFiles();
 renderWindows();
 showOverview();
+setTimeout(applyEffectsToAllWindows, 500);
+setTimeout(applyEffectsToAllWindows, 1800);
 </script>
 </body>
 </html>
