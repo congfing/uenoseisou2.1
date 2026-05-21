@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>上野清掃2.1</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: linear-gradient(180deg, #eaf3ff 0%, #f7fafc 45%, #eef2f7 100%);
+    color: #1f2937;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-x: contain;
+  }
+  header {
+    background: linear-gradient(135deg, #1a6eb5, #0f4a80);
+    color: #fff;
+    padding: 18px 16px 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  h1 {
+    font-size: 23px;
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    text-align: center;
+  }
+  .sub {
+    margin-top: 5px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.9;
+  }
+  main {
+    width: min(920px, 100%);
+    margin: 0 auto;
+    padding: 18px 12px 40px;
+  }
+  .tabbar-shell {
+    margin-bottom: 14px;
+    background: rgba(255,255,255,0.88);
+    border: 1px solid #cfe0f4;
+    border-radius: 16px;
+    padding: 9px;
+    box-shadow: 0 3px 10px rgba(15, 74, 128, 0.10);
+    position: sticky;
+    top: 77px;
+    z-index: 8;
+    backdrop-filter: blur(12px);
+  }
+  .tabbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab-list {
+    flex: 1;
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 1px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-list::-webkit-scrollbar { display: none; }
+  .tab-btn,
+  .add-tab-btn {
+    border: 1px solid #b8cce4;
+    font-family: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab-btn {
+    min-width: 86px;
+    max-width: 140px;
+    padding: 10px 13px;
+    border-radius: 12px;
+    background: #eef6ff;
+    color: #31506f;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: inset 0 -2px 0 rgba(49,80,111,0.08);
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #1a6eb5, #0f4a80);
+    color: #fff;
+    border-color: #0f4a80;
+    box-shadow: 0 3px 8px rgba(15, 74, 128, 0.22);
+  }
+  .add-tab-btn {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 50%;
+    background: #fff;
+    color: #0f4a80;
+    font-size: 25px;
+    line-height: 1;
+    box-shadow: 0 2px 7px rgba(15, 74, 128, 0.15);
+  }
+  .tab-content-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 2px 2px 10px;
+  }
+  .tab-content-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: #0f4a80;
+  }
+  .tab-content-sub {
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+  }
+  .continue-panel {
+    margin-bottom: 14px;
+    background: #fff;
+    border: 1px solid #bfdbfe;
+    border-radius: 16px;
+    padding: 13px;
+    box-shadow: 0 3px 10px rgba(15, 74, 128, 0.10);
+    display: none;
+  }
+  .continue-panel.show { display: block; }
+  .continue-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f4a80;
+    margin-bottom: 4px;
+  }
+  .continue-sub {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .continue-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .continue-btn {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 10px;
+    font-size: 14px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .window-grid {
+    padding: 2px;
+  }
+  .app-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    border: 1px solid #dbe3ee;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(15, 74, 128, 0.12);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app-card:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 5px rgba(15, 74, 128, 0.16);
+  }
+  .shot {
+    height: 128px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .shot.input { background: linear-gradient(135deg, #dbeafe, #eff6ff); }
+  .shot.bukken { background: linear-gradient(135deg, #dcfce7, #f0fdf4); }
+  .shot.colview { background: linear-gradient(135deg, #fef3c7, #fffbeb); }
+  .shot.memo { background: linear-gradient(135deg, #ede9fe, #f5f3ff); }
+  .mock {
+    width: 100%;
+    max-width: 230px;
+    height: 100%;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(30, 64, 175, 0.15);
+    border-radius: 12px;
+    padding: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .mock-top {
+    height: 18px;
+    border-radius: 6px;
+    background: #1a6eb5;
+  }
+  .mock-line {
+    height: 10px;
+    border-radius: 999px;
+    background: #cbd5e1;
+  }
+  .mock-line.short { width: 58%; }
+  .mock-line.mid { width: 78%; }
+  .mock-table {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    flex: 1;
+  }
+  .mock-cell {
+    border-radius: 4px;
+    background: #e2e8f0;
+  }
+  .mock-card {
+    flex: 1;
+    border-radius: 8px;
+    background: #e2e8f0;
+  }
+  .app-info {
+    padding: 12px 11px 13px;
+  }
+  .app-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f4a80;
+    line-height: 1.35;
+  }
+  .app-desc {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.45;
+  }
+  .tap {
+    margin-top: 8px;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: #1a6eb5;
+    padding: 4px 9px;
+    border-radius: 999px;
+  }
+  footer {
+    text-align: center;
+    padding: 12px;
+    color: #94a3b8;
+    font-size: 11px;
+  }
+  @media (max-width: 420px) {
+    h1 { font-size: 21px; }
+    main { padding-left: 10px; padding-right: 10px; }
+    .tabbar-shell { top: 73px; border-radius: 14px; }
+    .tab-btn { min-width: 78px; padding-left: 11px; padding-right: 11px; }
+    .grid { gap: 10px; }
+    .shot { height: 112px; padding: 9px; }
+    .app-title { font-size: 14px; }
+    .app-desc { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>上野清掃2.1</h1>
+  <div class="sub">使う画面をタップして起動</div>
+</header>
+
+<main>
+  <section class="tabbar-shell" aria-label="タブバー">
+    <div class="tabbar">
+      <div class="tab-list" id="tabList"></div>
+      <button class="add-tab-btn" type="button" id="addTabBtn" aria-label="タブを追加">+</button>
+    </div>
+  </section>
+
+  <div class="continue-panel" id="continuePanel">
+    <div class="continue-title">前回の続き</div>
+    <div class="continue-sub" id="continueSub"></div>
+    <div class="continue-actions">
+      <button class="continue-btn primary" type="button" id="continueBtn">続きへ戻る</button>
+      <button class="continue-btn secondary" type="button" id="clearContinueBtn">消す</button>
+    </div>
+  </div>
+
+  <div class="tab-content-head">
+    <div class="tab-content-title" id="activeTabTitle">Tab 1</div>
+    <div class="tab-content-sub">Window cards</div>
+  </div>
+  <div class="grid window-grid" id="windowGrid">
+    <a class="app-card" href="index_3-16.html">
+      <div class="shot input">
+        <div class="mock">
+          <div class="mock-top"></div>
+          <div class="mock-line mid"></div>
+          <div class="mock-card"></div>
+          <div class="mock-line short"></div>
+        </div>
+      </div>
+      <div class="app-info">
+        <div class="app-title">計量データ入力</div>
+        <div class="app-desc">日付・担当者を選んで物件ごとに入力</div>
+        <span class="tap">起動</span>
+      </div>
+    </a>
+
+    <a class="app-card" href="index_2-3_bukken.html">
+      <div class="shot bukken">
+        <div class="mock">
+          <div class="mock-top"></div>
+          <div class="mock-table">
+            <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+            <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+            <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          </div>
+        </div>
+      </div>
+      <div class="app-info">
+        <div class="app-title">物件表エディタ</div>
+        <div class="app-desc">Excel物件表を確認・編集・保存</div>
+        <span class="tap">起動</span>
+      </div>
+    </a>
+
+    <a class="app-card" href="index_2-4_colview.html">
+      <div class="shot colview">
+        <div class="mock">
+          <div class="mock-top"></div>
+          <div class="mock-line"></div>
+          <div class="mock-line mid"></div>
+          <div class="mock-table">
+            <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+            <div class="mock-cell"></div><div class="mock-cell"></div><div class="mock-cell"></div>
+          </div>
+        </div>
+      </div>
+      <div class="app-info">
+        <div class="app-title">列選択ビューア</div>
+        <div class="app-desc">必要な列だけ表示して絞り込み</div>
+        <span class="tap">起動</span>
+      </div>
+    </a>
+
+    <a class="app-card" href="index_5-1.html">
+      <div class="shot memo">
+        <div class="mock">
+          <div class="mock-top"></div>
+          <div class="mock-line mid"></div>
+          <div class="mock-line"></div>
+          <div class="mock-line short"></div>
+          <div class="mock-card"></div>
+        </div>
+      </div>
+      <div class="app-info">
+        <div class="app-title">記入箇所メモ</div>
+        <div class="app-desc">物件ごとのExcel記入場所を検索</div>
+        <span class="tap">起動</span>
+      </div>
+    </a>
+  </div>
+</main>
+
+<footer>Ueno Seisou 2.1 launcher</footer>
+<script>
+const tabList = document.getElementById('tabList');
+const addTabBtn = document.getElementById('addTabBtn');
+const activeTabTitle = document.getElementById('activeTabTitle');
+let tabs = [{ id: 1, title: 'Tab 1' }];
+let activeTabId = 1;
+
+function renderTabs() {
+  tabList.innerHTML = '';
+  tabs.forEach((tab) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `tab-btn${tab.id === activeTabId ? ' active' : ''}`;
+    button.textContent = tab.title;
+    button.setAttribute('aria-selected', tab.id === activeTabId ? 'true' : 'false');
+    button.addEventListener('click', () => selectTab(tab.id));
+    tabList.appendChild(button);
+  });
+  const active = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
+  activeTabTitle.textContent = active.title;
+  requestAnimationFrame(() => {
+    const activeButton = tabList.querySelector('.tab-btn.active');
+    if (activeButton) activeButton.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  });
+}
+
+function selectTab(id) {
+  activeTabId = id;
+  renderTabs();
+}
+
+function addTab() {
+  const nextNumber = tabs.length + 1;
+  const tab = { id: Date.now(), title: `Tab ${nextNumber}` };
+  tabs.push(tab);
+  activeTabId = tab.id;
+  renderTabs();
+}
+
+addTabBtn.addEventListener('click', addTab);
+renderTabs();
+
+const RESUME_KEY = 'ueno_seisou_resume_v1';
+const PAGE_LABELS = {
+  'index_3-16.html': '計量データ入力',
+  'index_2-3_bukken.html': '物件表エディタ',
+  'index_2-4_colview.html': '列選択ビューア',
+  'index_5-1.html': '記入箇所メモ'
+};
+const panel = document.getElementById('continuePanel');
+const sub = document.getElementById('continueSub');
+const btn = document.getElementById('continueBtn');
+const clearBtn = document.getElementById('clearContinueBtn');
+let resume = null;
+try { resume = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); } catch(e) { resume = null; }
+if (resume && resume.page && PAGE_LABELS[resume.page]) {
+  const d = resume.updatedAt ? new Date(resume.updatedAt) : null;
+  const time = d && !isNaN(d) ? d.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+  sub.textContent = `${PAGE_LABELS[resume.page]}${time ? '（' + time + '）' : ''}`;
+  panel.classList.add('show');
+}
+btn.addEventListener('click', () => {
+  if (!resume || !resume.page) return;
+  location.href = resume.page;
+});
+clearBtn.addEventListener('click', () => {
+  localStorage.removeItem(RESUME_KEY);
+  panel.classList.remove('show');
+  resume = null;
+});
+</script>
+</body>
+</html>

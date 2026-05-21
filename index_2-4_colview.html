@@ -261,7 +261,6 @@
 <body>
 
 <div id="app-header">
-  <button id="backBtn" onclick="location.href='上野清掃2.1.html'">🏠 ホーム</button>
   <h1>📋 列選択ビューア</h1>
   <span id="fileNameDisplay"></span>
 </div>
@@ -868,7 +867,7 @@ function renderTable() {
   displayedRows = rows;  // 保存用に保持
 
   // ボディ描画
-  // 「計量」列、またはセル内容が「計量」の場合だけリンクボタンとして表示
+  // 「計量」列はHome側のTabで切り替えるため、ページ移動リンクは出さない。
   tableBody.innerHTML='';
   rows.forEach((row,ri) => {
     const tr = document.createElement('tr');
@@ -880,11 +879,7 @@ function renderTable() {
       const header = String(headers[ci] || '').trim();
       if ((header === '計量' && cell !== '') || cell === '計量') {
         td.className = 'keiryou-td';
-        const a = document.createElement('a');
-        a.className = 'keiryou-link-cell';
-        a.href = 'index_3-16.html';
-        a.textContent = '計量';
-        td.appendChild(a);
+        td.textContent = '計量';
       } else {
         td.textContent = cell;
       }

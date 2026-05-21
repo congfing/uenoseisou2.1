@@ -657,7 +657,6 @@
     <button class="toolbar-btn" id="btnAddRow">➕ 行追加</button>
     <button class="toolbar-btn" id="btnCheckBango">🔢 整理番号修正</button>
     <button class="toolbar-btn" id="btnSave">💾 Excel保存</button>
-    <button class="toolbar-btn" onclick="appTabGo('index_2-4_colview.html')" style="background:#e8f4e8;border-color:#7db87d;">📋 列選択ビューア</button>
     <button class="toolbar-btn" onclick="toggleHistPanel()" style="background:#fffbeb;border-color:#f59e0b;color:#92400e;font-weight:700;">📌 履歴</button>
 
     <span id="statusBar">— ファイル未読み込み —</span>
@@ -948,6 +947,7 @@
   const GITHUB_API_URL = 'https://api.github.com/repos/congfing/Keiryou_Editor/contents/';
   const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/congfing/Keiryou_Editor/main/';
   const gitFileSelector = document.getElementById('gitFileSelector');
+  const initialFileParam = new URLSearchParams(location.search).get('file');
 
   function fetchGitHubFileList() {
     fetch(GITHUB_API_URL + '?t=' + Date.now())
@@ -969,13 +969,16 @@
           opt.textContent = f.name;
           gitFileSelector.appendChild(opt);
         });
-        // 前回選択ファイルを優先、なければ最初のファイル
+        // URL指定ファイル、前回選択ファイル、なければ最初のファイル
         if (xlsxFiles.length > 0) {
           const _s = loadSavedState();
-          const preferred = _s && _s.filename
+          const requested = initialFileParam
+            ? xlsxFiles.find(f => f.name === initialFileParam)
+            : null;
+          const preferred = !requested && _s && _s.filename
             ? xlsxFiles.find(f => f.name === _s.filename)
             : null;
-          const target = preferred || xlsxFiles[0];
+          const target = requested || preferred || xlsxFiles[0];
           gitFileSelector.value = encodeURIComponent(target.name);
           loadFromGitHub(target.name);
         }
@@ -1023,6 +1026,20 @@
   // GitHubファイル選択時
   gitFileSelector.addEventListener('change', function() {
     if (this.value && this.value !== '__local__') loadFromGitHub(decodeURIComponent(this.value));
+  });
+
+  window.addEventListener('message', function(event) {
+    const msg = event.data || {};
+    if (msg.type !== 'ueno21-open-local-excel' || !msg.buffer || !msg.filename) return;
+    loadWorkbookData(msg.buffer, msg.filename, 'Tab追加ローカルファイル');
+    let localOpt = gitFileSelector.querySelector('option[value="__local__"]');
+    if (!localOpt) {
+      localOpt = document.createElement('option');
+      localOpt.value = '__local__';
+      gitFileSelector.insertBefore(localOpt, gitFileSelector.firstChild);
+    }
+    localOpt.textContent = '📱 ' + msg.filename;
+    gitFileSelector.value = '__local__';
   });
 
   // 🔄ボタン：現在選択中ファイルを再取得
@@ -1254,15 +1271,11 @@
       row.forEach((cell, ci) => {
         const td = document.createElement('td');
 
-        // 計量列：値があればリンクボタン表示（テキストは「計量」固定）
+        // 計量列：Home側のTabで切り替えるため、ページ移動リンクは出さない。
         if (keiryouColIdxSet.has(ci) && cell.trim() !== '') {
           td.contentEditable = 'false';
           td.className = 'keiryou-td';
-          const a = document.createElement('a');
-          a.className = 'keiryou-link-cell';
-          a.href = 'index_3-16.html';
-          a.textContent = '計量';
-          td.appendChild(a);
+          td.textContent = '計量';
         } else {
           td.contentEditable = 'true';
           td.textContent = cell;
