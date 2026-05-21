@@ -298,7 +298,7 @@
 <div id="colPanel"></div>
 
 <div id="tableWrapper">
-  <div id="emptyMsg">GitHubからExcelを読み込んでいます…</div>
+  <div id="emptyMsg">GitHubの候補からExcelファイルを選択してください。</div>
   <table id="dataTable" style="display:none;">
     <thead id="tableHead"></thead>
     <tbody id="tableBody"></tbody>
@@ -327,8 +327,16 @@
 <div id="toast"></div>
 
 <script>
-const GITHUB_API_URL  = 'https://api.github.com/repos/congfing/Keiryou_Editor/contents/';
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/congfing/Keiryou_Editor/main/';
+const GITHUB_API_URL  = 'https://api.github.com/repos/congfing/uenoseisou2.1/contents/';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/congfing/uenoseisou2.1/main/';
+const GITHUB_JSDELIVR_API = 'https://data.jsdelivr.com/v1/package/gh/congfing/uenoseisou2.1@main/flat';
+const GITHUB_JSDELIVR_RAW = 'https://cdn.jsdelivr.net/gh/congfing/uenoseisou2.1@main/';
+const FALLBACK_XLSX_FILES = [
+  '2026年度物件表_KMN置換.xlsx',
+  '2026年度物件表_KMN置換_列移動_20260513_計量リンク.xlsx',
+  '2026年度物件表①②③（20260509更新）.xlsx',
+  '収集カレンダー_令和8年度(祝日いり)_v11.xlsx'
+];
 
 const gitFileSel    = document.getElementById('gitFileSelector');
 const sheetSel      = document.getElementById('sheetSelector');
@@ -358,6 +366,8 @@ let filterState = { colIdx: null, selectedValues: new Set(), filterType: 'exact'
 let filterPopupCol = -1;
 let toastTimer  = null;
 let displayedRows = [];  // 現在表示中の行（フィルター＋ソート済み）
+let gitListLoading = false;
+let gitListLoadedAt = 0;
 
 // ===== localStorage 状態保存・復元 =====
 const STORAGE_KEY = 'keiryou_colview_state';
@@ -517,32 +527,51 @@ sheetSel.addEventListener('change', function() {
 });
 
 // GitHub ファイル一覧
+function uniqueXlsxNames(names) {
+  return [...new Set(names.map(name => String(name || '').replace(/^\//, '')))]
+    .filter(name => /\.xlsx$/i.test(name));
+}
+
+function getGitHubXlsxNames() {
+  return fetch(GITHUB_API_URL + '?t=' + Date.now(), { cache: 'no-store' })
+    .then(r => { if(!r.ok) throw new Error('GitHub API HTTP ' + r.status); return r.json(); })
+    .then(files => uniqueXlsxNames(files.filter(f => f.type === 'file').map(f => f.name)))
+    .catch(apiErr => {
+      console.warn('GitHub API一覧取得エラー。予備取得に切替:', apiErr);
+      return fetch(GITHUB_JSDELIVR_API + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(r => { if(!r.ok) throw new Error('jsDelivr HTTP ' + r.status); return r.json(); })
+        .then(data => uniqueXlsxNames((data.files || []).map(f => f.name)))
+        .catch(fallbackErr => {
+          console.warn('予備一覧取得エラー。固定候補を表示:', fallbackErr);
+          return uniqueXlsxNames(FALLBACK_XLSX_FILES);
+        });
+    });
+}
+
 function fetchGitHubFileList() {
-  fetch(GITHUB_API_URL + '?t=' + Date.now())
-    .then(r => { if(!r.ok) throw new Error(); return r.json(); })
-    .then(files => {
-      const xlsxFiles = files.filter(f => f.type==='file' && /\.xlsx$/i.test(f.name));
+  if (gitListLoading) return;
+  gitListLoading = true;
+  const previousValue = gitFileSel.value;
+  getGitHubXlsxNames()
+    .then(xlsxNames => {
       gitFileSel.innerHTML = '';
-      if (!xlsxFiles.length) { gitFileSel.innerHTML='<option value="">ファイルなし</option>'; return; }
+      if (!xlsxNames.length) { gitFileSel.innerHTML='<option value="">ファイルなし</option>'; return; }
       const ph = document.createElement('option');
       ph.value=''; ph.textContent='📂 ファイルを選択…';
       gitFileSel.appendChild(ph);
-      xlsxFiles.forEach(f => {
+      xlsxNames.forEach(name => {
         const o = document.createElement('option');
-        o.value = encodeURIComponent(f.name);
-        o.textContent = f.name;
+        o.value = encodeURIComponent(name);
+        o.textContent = name;
         gitFileSel.appendChild(o);
       });
-      // 保存済みファイル名があればそれを優先
-      const saved = loadSavedState();
-      const preferred = saved && saved.filename
-        ? xlsxFiles.find(f => f.name === saved.filename)
-        : null;
-      const target = preferred || xlsxFiles[0];
-      gitFileSel.value = encodeURIComponent(target.name);
-      loadFromGitHub(target.name);
+      const existsPrevious = previousValue && xlsxNames.some(name => encodeURIComponent(name) === previousValue);
+      gitFileSel.value = existsPrevious ? previousValue : '';
+      gitListLoadedAt = Date.now();
+      updateStatus('GitHubのExcel候補を更新しました。候補を選ぶと読み込みます。');
     })
-    .catch(() => { gitFileSel.innerHTML='<option value="">⚠️ 取得失敗</option>'; });
+    .catch(() => { gitFileSel.innerHTML='<option value="">⚠️ 候補更新失敗</option>'; })
+    .finally(() => { gitListLoading = false; });
 }
 
 function loadFromGitHub(filename) {
@@ -553,10 +582,15 @@ function loadFromGitHub(filename) {
   const btn = document.getElementById('btnReload');
   btn.textContent='⏳ 読込中…'; btn.disabled=true;
   updateStatus('読み込み中…');
-  fetch(GITHUB_RAW_BASE + encodeURIComponent(filename) + '?t=' + Date.now())
+  fetch(GITHUB_RAW_BASE + encodeURIComponent(filename) + '?t=' + Date.now(), { cache: 'no-store' })
     .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); })
+    .catch(err => {
+      console.warn('raw.githubusercontent.com 読み込みエラー。予備取得に切替:', err);
+      return fetch(GITHUB_JSDELIVR_RAW + encodeURIComponent(filename) + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(r => { if(!r.ok) throw new Error('jsDelivr HTTP '+r.status); return r.arrayBuffer(); });
+    })
     .then(buf => {
-      loadWorkbookData(buf, filename, 'GitHub: github.com/congfing/Keiryou_Editor');
+      loadWorkbookData(buf, filename, 'GitHub: github.com/congfing/uenoseisou2.1');
       if (window._histPendingRestore && window._histPendingRestore.filename === filename) {
         setTimeout(function() { window._histPendingRestore.applyFn(); delete window._histPendingRestore; }, 100);
       }
@@ -567,6 +601,12 @@ function loadFromGitHub(filename) {
 
 gitFileSel.addEventListener('change', function() {
   if (this.value && this.value !== '__local__') loadFromGitHub(decodeURIComponent(this.value));
+});
+gitFileSel.addEventListener('pointerdown', function() {
+  if (Date.now() - gitListLoadedAt > 3000) fetchGitHubFileList();
+});
+gitFileSel.addEventListener('focus', function() {
+  if (Date.now() - gitListLoadedAt > 3000) fetchGitHubFileList();
 });
 
 // ローカルファイルを開く
@@ -587,7 +627,10 @@ document.getElementById('localFileInput').addEventListener('change', function() 
   reader.readAsArrayBuffer(file);
   this.value = '';
 });
-document.getElementById('btnReload').addEventListener('click', () => loadFromGitHub());
+document.getElementById('btnReload').addEventListener('click', () => {
+  if (gitFileSel.value && gitFileSel.value !== '__local__') loadFromGitHub();
+  else fetchGitHubFileList();
+});
 
 // 列チェックパネル構築
 function buildColPanel() {
