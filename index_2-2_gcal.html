@@ -159,11 +159,17 @@ body {
 .week-row td.sun { background: #fff5f5; }
 .week-row td.empty { background: #fafafa; }
 
+.day-head {
+  display: flex; align-items: center; gap: 4px;
+  min-height: 24px; margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden;
+}
 .daynum {
   display: inline-block; font-size: 12px; font-weight: 700;
   background: #4b72b8; color: #fff;
-  border-radius: 4px; padding: 1px 4px; margin-bottom: 2px;
+  border-radius: 4px; padding: 1px 4px;
   line-height: 1.4; min-width: 20px; text-align: center;
+  flex: 0 0 auto;
 }
 .week-row td.sat .daynum { background: #5b7dc8; }
 .week-row td.sun .daynum { background: #dc2626; }
@@ -192,8 +198,9 @@ body {
 }
 .holiday-badge {
   font-size: 8px; font-weight: 700; color: #fff;
-  background: #dc2626; border-radius: 3px; padding: 0 3px;
-  display: inline-block; margin-bottom: 1px; white-space: nowrap;
+  background: #dc2626; border-radius: 3px; padding: 1px 3px;
+  display: inline-block; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 </style>
 </head>
@@ -551,20 +558,22 @@ async function renderSheet(name) {
           td.appendChild(todayLabel);
         }
 
-        // 祝日バッジ
-        if (holidayName) {
-          const badge = document.createElement('div');
-          badge.className = 'holiday-badge';
-          badge.textContent = holidayName;
-          td.appendChild(badge);
-        }
-
-        // 日付番号
+        // 日付番号と祝日名を同じ行に置く（日付位置を動かさない）
+        const dayHead = document.createElement('div');
+        dayHead.className = 'day-head';
         const numEl = document.createElement('div');
         numEl.className = 'daynum';
         if (holidayName) numEl.style.background = '#dc2626';
         numEl.textContent = dateVal;
-        td.appendChild(numEl);
+        dayHead.appendChild(numEl);
+
+        if (holidayName) {
+          const badge = document.createElement('div');
+          badge.className = 'holiday-badge';
+          badge.textContent = holidayName;
+          dayHead.appendChild(badge);
+        }
+        td.appendChild(dayHead);
 
         // 内容（1行ずつdivで表示・nowrap）
         if (contentVal) {
