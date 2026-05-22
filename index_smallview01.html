@@ -500,7 +500,9 @@ function createWindow(app) {
   frame.addEventListener('load', () => {
     if (frame.dataset.loadingStarted !== 'true') return;
     card.classList.add('loaded');
+    attachFrameObserver(frame);
     setTimeout(applyEffectsToAllWindows, 120);
+    setTimeout(applyEffectsToAllWindows, 900);
   });
 
   card.appendChild(title);
@@ -683,6 +685,7 @@ function resetEffectsInDocument(doc) {
   if (!doc) return;
   doc.querySelectorAll('[data-ueno-soft-color]').forEach((el) => {
     el.style.removeProperty('background-color');
+    el.style.removeProperty('background');
     el.style.removeProperty('border-color');
     el.style.removeProperty('color');
     delete el.dataset.uenoSoftColor;
@@ -711,39 +714,60 @@ function applySoftColorsToDocument(doc, settings) {
   if (!doc || !doc.body) return;
 
   if (settings.softFrameBgEnable) {
-    doc.querySelectorAll('body, main, .workspace, #tableWrapper, .container, .content, .panel, .card').forEach((el) => {
+    doc.querySelectorAll('body, main, .workspace, #tableWrapper, #emptyMsg, #dataTable, #dataTable tbody tr, #dataTable tbody td, #filterPopup, #saveDialogBox, #hist-panel, .container, .content, .panel, .card, .screen, .selector, .prop-card, .history-item, .hist-item').forEach((el) => {
       el.style.setProperty('background-color', settings.softFrameBgColor, 'important');
+      el.style.setProperty('background', settings.softFrameBgColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
   }
 
   if (settings.softBorderEnable) {
-    doc.querySelectorAll('table, th, td, button, input, select, textarea, .toolbar-btn, .tb-btn, .card, .panel, .section, #toolbar, .toolbar').forEach((el) => {
+    doc.querySelectorAll('table, th, td, button, input, select, textarea, #dataTable th, #dataTable td, #colPanel, .col-lbl, #filterPopup, #saveDialogBox, #gitFileSelector, #sheetSelector, #searchInput, #toolbar-toggle, #hist-panel, .toolbar-btn, .tb-btn, .card, .panel, .section, #toolbar, .toolbar, .selector, .prop-card, .history-item, .hist-item, .property-header, .file-tag').forEach((el) => {
       el.style.setProperty('border-color', settings.softBorderColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
   }
 
   if (settings.softTitleBarEnable) {
-    doc.querySelectorAll('#app-header, .app-header, header, .topbar, .page-header, .main-header, .titlebar').forEach((el) => {
+    doc.querySelectorAll('#app-header, #hist-panel-hdr, #hist-save-btn, #dataTable thead th, #filterApplyBtn, .col-lbl.on, a.keiryou-link-cell, .app-header, .header, header, .topbar, .page-header, .main-header, .titlebar, .property-header').forEach((el) => {
       el.style.setProperty('background-color', settings.softTitleBarColor, 'important');
+      el.style.setProperty('background', settings.softTitleBarColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
   }
 
   if (settings.softSubtitleEnable) {
-    doc.querySelectorAll('#toolbar, #toolbar-inner, .toolbar, .toolbar-inner, .tabbar, .tab-add-panel, nav, .subbar, .sub-header, .section-title').forEach((el) => {
+    doc.querySelectorAll('#toolbar, #toolbar-inner, #toolbar-toggle, #colPanel, .tb-btn, .fp-row button, #sdlgSaveAs, .hist-item, .toolbar, .toolbar-inner, .nav-tabs, .nav-tab, .tabbar, .tab-add-panel, nav, .subbar, .sub-header, .header-top, .section-title, .sub, .section-sub, .file-header-note, .file-tag, .property-no, .count-badge').forEach((el) => {
       el.style.setProperty('background-color', settings.softSubtitleColor, 'important');
+      el.style.setProperty('background', settings.softSubtitleColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
   }
 
   if (settings.softTitleTextEnable) {
-    doc.querySelectorAll('#app-header, #app-header *, .app-header, .app-header *, header h1, header .brand, .topbar, .topbar *, h1, .title, .page-title').forEach((el) => {
+    doc.querySelectorAll('#app-header, #app-header *, #dataTable thead th, #hist-panel-hdr, #hist-panel-hdr *, #filterApplyBtn, a.keiryou-link-cell, .col-lbl.on, .app-header, .app-header *, .header, .header *, header, header *, .topbar, .topbar *, h1, .title, .page-title, .header-title, .section-title, .property-name').forEach((el) => {
       el.style.setProperty('color', settings.softTitleTextColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
   }
+}
+
+function attachFrameObserver(frame) {
+  try {
+    if (frame._uenoEffectObserver) {
+      frame._uenoEffectObserver.disconnect();
+      frame._uenoEffectObserver = null;
+    }
+    const doc = frame.contentDocument;
+    if (!doc || !doc.body) return;
+    const Observer = (doc.defaultView && doc.defaultView.MutationObserver) || MutationObserver;
+    let timer = null;
+    frame._uenoEffectObserver = new Observer(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => applyEffectsToDocument(doc, getEffectSettings()), 120);
+    });
+    frame._uenoEffectObserver.observe(doc.body, { childList: true, subtree: true });
+  } catch (error) {}
 }
 
 function applySoftColorsToHost(settings) {
