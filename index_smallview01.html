@@ -347,7 +347,12 @@
       <button class="tool-btn delete" type="button" id="deleteWindowBtn">削除</button>
       <input class="color-picker" type="color" id="bgColorPicker" value="#edf3f8" title="背景色">
       <div class="color-presets" id="bgColorPresets" aria-label="背景色候補"></div>
-      <label class="effect-check">Title背景<input class="effect-color" type="color" id="titleBgColorPicker" value="#0f4a80" title="Softタイトル背景色"></label>
+      <label class="effect-check">Card名<input class="effect-color" type="color" id="titleBgColorPicker" value="#0f4a80" title="縮小カード名背景色"></label>
+      <label class="effect-check"><input type="checkbox" id="softBorderEnable">枠線<input class="effect-color" type="color" id="softBorderColor" value="#1a6eb5"></label>
+      <label class="effect-check"><input type="checkbox" id="softFrameBgEnable">枠背景<input class="effect-color" type="color" id="softFrameBgColor" value="#ffffff"></label>
+      <label class="effect-check"><input type="checkbox" id="softTitleBarEnable">TitleBar<input class="effect-color" type="color" id="softTitleBarColor" value="#1a6eb5"></label>
+      <label class="effect-check"><input type="checkbox" id="softSubtitleEnable">SubTitle<input class="effect-color" type="color" id="softSubtitleColor" value="#e8f0fb"></label>
+      <label class="effect-check"><input type="checkbox" id="softTitleTextEnable">Title文字<input class="effect-color" type="color" id="softTitleTextColor" value="#ffffff"></label>
       <div class="effect-tools" aria-label="Shadow設定">
         <label class="effect-check"><input type="checkbox" id="fxShadowEnable">Shadow</label>
         <select class="tool-select" id="fxShadowPreset" title="影の形">
@@ -413,6 +418,16 @@ const deleteWindowBtn = document.getElementById('deleteWindowBtn');
 const bgColorPicker = document.getElementById('bgColorPicker');
 const bgColorPresets = document.getElementById('bgColorPresets');
 const titleBgColorPicker = document.getElementById('titleBgColorPicker');
+const softBorderEnable = document.getElementById('softBorderEnable');
+const softBorderColor = document.getElementById('softBorderColor');
+const softFrameBgEnable = document.getElementById('softFrameBgEnable');
+const softFrameBgColor = document.getElementById('softFrameBgColor');
+const softTitleBarEnable = document.getElementById('softTitleBarEnable');
+const softTitleBarColor = document.getElementById('softTitleBarColor');
+const softSubtitleEnable = document.getElementById('softSubtitleEnable');
+const softSubtitleColor = document.getElementById('softSubtitleColor');
+const softTitleTextEnable = document.getElementById('softTitleTextEnable');
+const softTitleTextColor = document.getElementById('softTitleTextColor');
 const fxShadowEnable = document.getElementById('fxShadowEnable');
 const fxShadowPreset = document.getElementById('fxShadowPreset');
 const fxShadowBlur = document.getElementById('fxShadowBlur');
@@ -612,6 +627,16 @@ function generateTextShadow(preset, blur, offset, color, alpha) {
 
 function getEffectSettings() {
   return {
+    softBorderEnable: softBorderEnable.checked,
+    softBorderColor: softBorderColor.value,
+    softFrameBgEnable: softFrameBgEnable.checked,
+    softFrameBgColor: softFrameBgColor.value,
+    softTitleBarEnable: softTitleBarEnable.checked,
+    softTitleBarColor: softTitleBarColor.value,
+    softSubtitleEnable: softSubtitleEnable.checked,
+    softSubtitleColor: softSubtitleColor.value,
+    softTitleTextEnable: softTitleTextEnable.checked,
+    softTitleTextColor: softTitleTextColor.value,
     shadowEnable: fxShadowEnable.checked,
     shadowPreset: fxShadowPreset.value,
     shadowBlur: fxShadowBlur.value,
@@ -634,6 +659,16 @@ function loadEffectSettings() {
   } catch (error) {
     settings = {};
   }
+  softBorderEnable.checked = !!settings.softBorderEnable;
+  if (settings.softBorderColor) softBorderColor.value = settings.softBorderColor;
+  softFrameBgEnable.checked = !!settings.softFrameBgEnable;
+  if (settings.softFrameBgColor) softFrameBgColor.value = settings.softFrameBgColor;
+  softTitleBarEnable.checked = !!settings.softTitleBarEnable;
+  if (settings.softTitleBarColor) softTitleBarColor.value = settings.softTitleBarColor;
+  softSubtitleEnable.checked = !!settings.softSubtitleEnable;
+  if (settings.softSubtitleColor) softSubtitleColor.value = settings.softSubtitleColor;
+  softTitleTextEnable.checked = !!settings.softTitleTextEnable;
+  if (settings.softTitleTextColor) softTitleTextColor.value = settings.softTitleTextColor;
   fxShadowEnable.checked = !!settings.shadowEnable;
   if (settings.shadowPreset) fxShadowPreset.value = settings.shadowPreset;
   if (settings.shadowBlur !== undefined) fxShadowBlur.value = settings.shadowBlur;
@@ -646,6 +681,12 @@ function loadEffectSettings() {
 
 function resetEffectsInDocument(doc) {
   if (!doc) return;
+  doc.querySelectorAll('[data-ueno-soft-color]').forEach((el) => {
+    el.style.removeProperty('background-color');
+    el.style.removeProperty('border-color');
+    el.style.removeProperty('color');
+    delete el.dataset.uenoSoftColor;
+  });
   doc.querySelectorAll('[data-ueno-bg-opacity]').forEach((el) => {
     el.style.removeProperty('background-color');
     delete el.dataset.uenoBgOpacity;
@@ -666,9 +707,63 @@ function resetEffectsInDocument(doc) {
   });
 }
 
+function applySoftColorsToDocument(doc, settings) {
+  if (!doc || !doc.body) return;
+
+  if (settings.softFrameBgEnable) {
+    doc.querySelectorAll('body, main, .workspace, #tableWrapper, .container, .content, .panel, .card').forEach((el) => {
+      el.style.setProperty('background-color', settings.softFrameBgColor, 'important');
+      el.dataset.uenoSoftColor = 'true';
+    });
+  }
+
+  if (settings.softBorderEnable) {
+    doc.querySelectorAll('table, th, td, button, input, select, textarea, .toolbar-btn, .tb-btn, .card, .panel, .section, #toolbar, .toolbar').forEach((el) => {
+      el.style.setProperty('border-color', settings.softBorderColor, 'important');
+      el.dataset.uenoSoftColor = 'true';
+    });
+  }
+
+  if (settings.softTitleBarEnable) {
+    doc.querySelectorAll('#app-header, .app-header, header, .topbar, .page-header, .main-header, .titlebar').forEach((el) => {
+      el.style.setProperty('background-color', settings.softTitleBarColor, 'important');
+      el.dataset.uenoSoftColor = 'true';
+    });
+  }
+
+  if (settings.softSubtitleEnable) {
+    doc.querySelectorAll('#toolbar, #toolbar-inner, .toolbar, .toolbar-inner, .tabbar, .tab-add-panel, nav, .subbar, .sub-header, .section-title').forEach((el) => {
+      el.style.setProperty('background-color', settings.softSubtitleColor, 'important');
+      el.dataset.uenoSoftColor = 'true';
+    });
+  }
+
+  if (settings.softTitleTextEnable) {
+    doc.querySelectorAll('#app-header, #app-header *, .app-header, .app-header *, header h1, header .brand, .topbar, .topbar *, h1, .title, .page-title').forEach((el) => {
+      el.style.setProperty('color', settings.softTitleTextColor, 'important');
+      el.dataset.uenoSoftColor = 'true';
+    });
+  }
+}
+
+function applySoftColorsToHost(settings) {
+  cards.forEach((card) => {
+    card.style.removeProperty('border-color');
+    card.style.removeProperty('background-color');
+    if (settings.softBorderEnable) {
+      card.style.setProperty('border-color', settings.softBorderColor, 'important');
+    }
+    if (settings.softFrameBgEnable) {
+      card.style.setProperty('background-color', settings.softFrameBgColor, 'important');
+    }
+  });
+}
+
 function applyEffectsToDocument(doc, settings) {
   if (!doc || !doc.body) return;
   resetEffectsInDocument(doc);
+
+  applySoftColorsToDocument(doc, settings);
 
   if (settings.bgEnable) {
     const opacity = parseInt(settings.bgOpacity, 10) / 100;
@@ -728,14 +823,21 @@ function forEachWindowDocument(callback) {
 function applyEffectsToAllWindows() {
   const settings = getEffectSettings();
   saveEffectSettings();
+  applySoftColorsToHost(settings);
   forEachWindowDocument((doc) => applyEffectsToDocument(doc, settings));
 }
 
 function resetEffectsAllWindows() {
+  softBorderEnable.checked = false;
+  softFrameBgEnable.checked = false;
+  softTitleBarEnable.checked = false;
+  softSubtitleEnable.checked = false;
+  softTitleTextEnable.checked = false;
   fxShadowEnable.checked = false;
   fxGradientEnable.checked = false;
   fxBgEnable.checked = false;
   saveEffectSettings();
+  applySoftColorsToHost(getEffectSettings());
   forEachWindowDocument(resetEffectsInDocument);
 }
 
@@ -860,7 +962,26 @@ registerWindowBtn.addEventListener('click', registerWindow);
 deleteWindowBtn.addEventListener('click', deleteWindow);
 bgColorPicker.addEventListener('input', () => applyBgColor(bgColorPicker.value));
 titleBgColorPicker.addEventListener('input', () => applyTitleBgColor(titleBgColorPicker.value));
-[fxShadowEnable, fxShadowPreset, fxShadowBlur, fxShadowOffset, fxShadowColor, fxGradientEnable, fxBgEnable, fxBgOpacity].forEach((control) => {
+[
+  softBorderEnable,
+  softBorderColor,
+  softFrameBgEnable,
+  softFrameBgColor,
+  softTitleBarEnable,
+  softTitleBarColor,
+  softSubtitleEnable,
+  softSubtitleColor,
+  softTitleTextEnable,
+  softTitleTextColor,
+  fxShadowEnable,
+  fxShadowPreset,
+  fxShadowBlur,
+  fxShadowOffset,
+  fxShadowColor,
+  fxGradientEnable,
+  fxBgEnable,
+  fxBgOpacity
+].forEach((control) => {
   control.addEventListener('input', applyEffectsToAllWindows);
   control.addEventListener('change', applyEffectsToAllWindows);
 });
