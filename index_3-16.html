@@ -1624,7 +1624,20 @@ function sendHistoryByMail(ri, event){
   if(!to){ alert('送信先が設定されていません。\nメール設定タブでアドレスを登録してください。'); return; }
   const subject = encodeURIComponent(`計量データ ${record.date}（${record.staffName}）`);
   const bodyEncoded = encodeURIComponent(body);
-  window.location.href = `mailto:${to}?subject=${subject}&body=${bodyEncoded}`;
+  openMailComposer(`mailto:${to}?subject=${subject}&body=${bodyEncoded}`);
+}
+
+function openMailComposer(mailtoUrl){
+  const a = document.createElement('a');
+  a.href = mailtoUrl;
+  a.target = '_top';
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    if(a.parentNode) a.parentNode.removeChild(a);
+  }, 1000);
 }
 
 // ===== MAIL SETTINGS =====
