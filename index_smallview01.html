@@ -6,7 +6,10 @@
 <title>上野清掃2.1 Small View</title>
 <style>
   * { box-sizing: border-box; }
-  :root { --smallview-bg: #edf3f8; }
+  :root {
+    --smallview-bg: #edf3f8;
+    --window-title-bg: #0f4a80;
+  }
   html, body {
     margin: 0;
     height: 100%;
@@ -236,7 +239,7 @@
     max-width: calc(100% - 20px);
     padding: 5px 10px;
     border-radius: 999px;
-    background: rgba(15, 74, 128, 0.90);
+    background: var(--window-title-bg);
     color: #fff;
     font-size: 12px;
     font-weight: 900;
@@ -344,6 +347,7 @@
       <button class="tool-btn delete" type="button" id="deleteWindowBtn">削除</button>
       <input class="color-picker" type="color" id="bgColorPicker" value="#edf3f8" title="背景色">
       <div class="color-presets" id="bgColorPresets" aria-label="背景色候補"></div>
+      <label class="effect-check">Title背景<input class="effect-color" type="color" id="titleBgColorPicker" value="#0f4a80" title="Softタイトル背景色"></label>
       <div class="effect-tools" aria-label="Shadow設定">
         <label class="effect-check"><input type="checkbox" id="fxShadowEnable">Shadow</label>
         <select class="tool-select" id="fxShadowPreset" title="影の形">
@@ -387,10 +391,13 @@ const GITHUB_FILES = [
 ];
 const GITHUB_HTML_API = 'https://api.github.com/repos/congfing/uenoseisou2.1/contents/';
 const APP_VERSION = '20260521-smallview01';
+const LOAD_DELAY_MS = 650;
 const STORAGE_KEY = 'ueno21_smallview_custom_windows';
 const BG_COLOR_KEY = 'ueno21_smallview_bg_color';
+const TITLE_BG_COLOR_KEY = 'ueno21_smallview_title_bg_color';
 const EFFECT_KEY = 'ueno21_smallview_effect_settings';
 const DEFAULT_BG_COLOR = '#edf3f8';
+const DEFAULT_TITLE_BG_COLOR = '#0f4a80';
 const BG_COLOR_PRESETS = ['#edf3f8', '#f3f7ef', '#fff4df', '#f6edf8', '#eef7f8', '#f5f5f5'];
 
 const windowGrid = document.getElementById('windowGrid');
@@ -405,6 +412,7 @@ const deleteWindowSelect = document.getElementById('deleteWindowSelect');
 const deleteWindowBtn = document.getElementById('deleteWindowBtn');
 const bgColorPicker = document.getElementById('bgColorPicker');
 const bgColorPresets = document.getElementById('bgColorPresets');
+const titleBgColorPicker = document.getElementById('titleBgColorPicker');
 const fxShadowEnable = document.getElementById('fxShadowEnable');
 const fxShadowPreset = document.getElementById('fxShadowPreset');
 const fxShadowBlur = document.getElementById('fxShadowBlur');
@@ -473,8 +481,10 @@ function createWindow(app) {
   const frame = document.createElement('iframe');
   frame.className = 'window-frame';
   frame.title = app.title;
-  frame.src = withEmbeddedParam(app.href);
+  frame.dataset.src = withEmbeddedParam(app.href);
   frame.addEventListener('load', () => {
+    if (frame.dataset.loadingStarted !== 'true') return;
+    card.classList.add('loaded');
     setTimeout(applyEffectsToAllWindows, 120);
   });
 
@@ -493,8 +503,24 @@ function createWindow(app) {
   cards.set(app.key, card);
 }
 
+function loadWindowFrame(app, index) {
+  const card = cards.get(app.key);
+  if (!card) return;
+  const frame = card.querySelector('.window-frame');
+  if (!frame || frame.src) return;
+  setTimeout(() => {
+    frame.dataset.loadingStarted = 'true';
+    frame.src = frame.dataset.src;
+  }, index * LOAD_DELAY_MS);
+}
+
+function startStaggeredLoad() {
+  APPS.forEach((app, index) => loadWindowFrame(app, index));
+}
+
 function renderWindows() {
   APPS.forEach((app) => createWindow(app));
+  startStaggeredLoad();
   refreshDeleteOptions();
 }
 
@@ -527,6 +553,13 @@ function applyBgColor(color) {
   bgColorPresets.querySelectorAll('.color-swatch').forEach((button) => {
     button.classList.toggle('active', button.dataset.color.toLowerCase() === safeColor.toLowerCase());
   });
+}
+
+function applyTitleBgColor(color) {
+  const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_TITLE_BG_COLOR;
+  document.documentElement.style.setProperty('--window-title-bg', safeColor);
+  titleBgColorPicker.value = safeColor;
+  safeStorageSet(TITLE_BG_COLOR_KEY, safeColor);
 }
 
 function buildColorPresets() {
@@ -764,6 +797,7 @@ function addCustomWindow(title, href) {
   };
   APPS.push(app);
   createWindow(app);
+  loadWindowFrame(app, 0);
   refreshDeleteOptions();
   focusWindow(app.key);
   return app;
@@ -825,6 +859,7 @@ githubFileSelect.addEventListener('change', () => {
 registerWindowBtn.addEventListener('click', registerWindow);
 deleteWindowBtn.addEventListener('click', deleteWindow);
 bgColorPicker.addEventListener('input', () => applyBgColor(bgColorPicker.value));
+titleBgColorPicker.addEventListener('input', () => applyTitleBgColor(titleBgColorPicker.value));
 [fxShadowEnable, fxShadowPreset, fxShadowBlur, fxShadowOffset, fxShadowColor, fxGradientEnable, fxBgEnable, fxBgOpacity].forEach((control) => {
   control.addEventListener('input', applyEffectsToAllWindows);
   control.addEventListener('change', applyEffectsToAllWindows);
@@ -833,6 +868,7 @@ fxResetBtn.addEventListener('click', resetEffectsAllWindows);
 
 buildColorPresets();
 applyBgColor(safeStorageGet(BG_COLOR_KEY, DEFAULT_BG_COLOR));
+applyTitleBgColor(safeStorageGet(TITLE_BG_COLOR_KEY, DEFAULT_TITLE_BG_COLOR));
 loadEffectSettings();
 fillGithubFiles();
 renderWindows();
