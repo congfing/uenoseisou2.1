@@ -227,11 +227,11 @@ body {
 <script src="app-tabs.js"></script>
 <script>
 // ===== GitHubファイルリスト（ファイルを追加する場合はここに追記）=====
-// リポジトリ: https://github.com/congfing/Keiryou_Editor
-const GH_BASE = 'https://raw.githubusercontent.com/congfing/Keiryou_Editor/main/Keiryou_Editor/';
+// リポジトリ: https://github.com/congfing/uenoseisou2.1
+const GH_BASE = 'https://raw.githubusercontent.com/congfing/uenoseisou2.1/main/';
 const GITHUB_FILES = [
   { name: '収集カレンダー_令和8年度(祝日いり)_v11.xlsx',
-    url:  GH_BASE + '%E5%8F%8E%E9%9B%86%E3%82%AB%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC_%E4%BB%A4%E5%92%8C8%E5%B9%B4%E5%BA%A6%28%E7%A5%9D%E6%97%A5%E3%81%84%E3%82%8A%29_v11.xlsx' },
+    url:  GH_BASE + encodeURIComponent('収集カレンダー_令和8年度(祝日いり)_v11.xlsx') },
   // 追加例: { name: '収集カレンダー_令和9年度.xlsx', url: GH_BASE + '...' },
 ];
 

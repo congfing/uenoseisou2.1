@@ -711,7 +711,7 @@ function applySoftColorsToDocument(doc, settings) {
   }
 
   if (settings.softBorderEnable) {
-    doc.querySelectorAll('table, th, td, button, input, select, textarea, #dataTable th, #dataTable td, #colPanel, .col-lbl, #filterPopup, #saveDialogBox, #gitFileSelector, #sheetSelector, #searchInput, #toolbar-toggle, #hist-panel, .toolbar-btn, .tb-btn, .card, .panel, .section, #toolbar, .toolbar, .selector, .prop-card, .history-item, .hist-item, .property-header, .file-tag').forEach((el) => {
+    doc.querySelectorAll('table, th, td, button, input, select, textarea, label.file-label, .file-label, #dataTable th, #dataTable td, #colPanel, .col-lbl, #filterPopup, #saveDialogBox, #gitFileSelector, #sheetSelector, #searchInput, #toolbar-toggle, #hist-panel, .toolbar-btn, .tb-btn, .card, .panel, .section, #toolbar, .toolbar, .selector, .prop-card, .history-item, .hist-item, .property-header, .file-tag').forEach((el) => {
       el.style.setProperty('border-color', settings.softBorderColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
@@ -726,7 +726,7 @@ function applySoftColorsToDocument(doc, settings) {
   }
 
   if (settings.softSubtitleEnable) {
-    doc.querySelectorAll('#toolbar, #toolbar-inner, #toolbar-toggle, #colPanel, .tb-btn, .fp-row button, #sdlgSaveAs, .hist-item, .toolbar, .toolbar-inner, .nav-tabs, .nav-tab, .tabbar, .tab-add-panel, nav, .subbar, .sub-header, .header-top, .section-title, .sub, .section-sub, .file-header-note, .file-tag, .property-no, .count-badge').forEach((el) => {
+    doc.querySelectorAll('#toolbar, #toolbar-inner, #toolbar-toggle, #colPanel, label.file-label, .file-label, .tb-btn, .fp-row button, #sdlgSaveAs, .hist-item, .toolbar, .toolbar-inner, .nav-tabs, .nav-tab, .tabbar, .tab-add-panel, nav, .subbar, .sub-header, .header-top, .section-title, .sub, .section-sub, .file-header-note, .file-tag, .property-no, .count-badge').forEach((el) => {
       el.style.setProperty('background-color', settings.softSubtitleColor, 'important');
       el.style.setProperty('background', settings.softSubtitleColor, 'important');
       el.dataset.uenoSoftColor = 'true';
@@ -734,7 +734,7 @@ function applySoftColorsToDocument(doc, settings) {
   }
 
   if (settings.softTitleTextEnable) {
-    doc.querySelectorAll('#app-header, #app-header *, #dataTable thead th, #hist-panel-hdr, #hist-panel-hdr *, #filterApplyBtn, a.keiryou-link-cell, .col-lbl.on, .app-header, .app-header *, .header, .header *, header, header *, .topbar, .topbar *, h1, .title, .page-title, .header-title, .section-title, .property-name').forEach((el) => {
+    doc.querySelectorAll('#app-header, #app-header *, #dataTable thead th, #hist-panel-hdr, #hist-panel-hdr *, #filterApplyBtn, label.file-label, .file-label, a.keiryou-link-cell, .col-lbl.on, .app-header, .app-header *, .header, .header *, header, header *, .topbar, .topbar *, h1, .title, .page-title, .header-title, .section-title, .property-name').forEach((el) => {
       el.style.setProperty('color', settings.softTitleTextColor, 'important');
       el.dataset.uenoSoftColor = 'true';
     });
