@@ -8,7 +8,6 @@
   * { box-sizing: border-box; }
   :root {
     --smallview-bg: #edf3f8;
-    --window-title-bg: #0f4a80;
   }
   html, body {
     margin: 0;
@@ -232,6 +231,7 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
   }
   .window-title {
+    display: none;
     position: absolute;
     left: 10px;
     top: 8px;
@@ -239,7 +239,7 @@
     max-width: calc(100% - 20px);
     padding: 5px 10px;
     border-radius: 999px;
-    background: var(--window-title-bg);
+    background: #0f4a80;
     color: #fff;
     font-size: 12px;
     font-weight: 900;
@@ -347,7 +347,6 @@
       <button class="tool-btn delete" type="button" id="deleteWindowBtn">削除</button>
       <input class="color-picker" type="color" id="bgColorPicker" value="#edf3f8" title="背景色">
       <div class="color-presets" id="bgColorPresets" aria-label="背景色候補"></div>
-      <label class="effect-check">Card名<input class="effect-color" type="color" id="titleBgColorPicker" value="#0f4a80" title="縮小カード名背景色"></label>
       <label class="effect-check"><input type="checkbox" id="softBorderEnable">枠線<input class="effect-color" type="color" id="softBorderColor" value="#1a6eb5"></label>
       <label class="effect-check"><input type="checkbox" id="softFrameBgEnable">枠背景<input class="effect-color" type="color" id="softFrameBgColor" value="#ffffff"></label>
       <label class="effect-check"><input type="checkbox" id="softTitleBarEnable">TitleBar<input class="effect-color" type="color" id="softTitleBarColor" value="#1a6eb5"></label>
@@ -399,10 +398,8 @@ const APP_VERSION = '20260521-smallview01';
 const LOAD_DELAY_MS = 650;
 const STORAGE_KEY = 'ueno21_smallview_custom_windows';
 const BG_COLOR_KEY = 'ueno21_smallview_bg_color';
-const TITLE_BG_COLOR_KEY = 'ueno21_smallview_title_bg_color';
 const EFFECT_KEY = 'ueno21_smallview_effect_settings';
 const DEFAULT_BG_COLOR = '#edf3f8';
-const DEFAULT_TITLE_BG_COLOR = '#0f4a80';
 const BG_COLOR_PRESETS = ['#edf3f8', '#f3f7ef', '#fff4df', '#f6edf8', '#eef7f8', '#f5f5f5'];
 
 const windowGrid = document.getElementById('windowGrid');
@@ -417,7 +414,6 @@ const deleteWindowSelect = document.getElementById('deleteWindowSelect');
 const deleteWindowBtn = document.getElementById('deleteWindowBtn');
 const bgColorPicker = document.getElementById('bgColorPicker');
 const bgColorPresets = document.getElementById('bgColorPresets');
-const titleBgColorPicker = document.getElementById('titleBgColorPicker');
 const softBorderEnable = document.getElementById('softBorderEnable');
 const softBorderColor = document.getElementById('softBorderColor');
 const softFrameBgEnable = document.getElementById('softFrameBgEnable');
@@ -570,13 +566,6 @@ function applyBgColor(color) {
   bgColorPresets.querySelectorAll('.color-swatch').forEach((button) => {
     button.classList.toggle('active', button.dataset.color.toLowerCase() === safeColor.toLowerCase());
   });
-}
-
-function applyTitleBgColor(color) {
-  const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_TITLE_BG_COLOR;
-  document.documentElement.style.setProperty('--window-title-bg', safeColor);
-  titleBgColorPicker.value = safeColor;
-  safeStorageSet(TITLE_BG_COLOR_KEY, safeColor);
 }
 
 function buildColorPresets() {
@@ -985,7 +974,6 @@ githubFileSelect.addEventListener('change', () => {
 registerWindowBtn.addEventListener('click', registerWindow);
 deleteWindowBtn.addEventListener('click', deleteWindow);
 bgColorPicker.addEventListener('input', () => applyBgColor(bgColorPicker.value));
-titleBgColorPicker.addEventListener('input', () => applyTitleBgColor(titleBgColorPicker.value));
 [
   softBorderEnable,
   softBorderColor,
@@ -1013,7 +1001,6 @@ fxResetBtn.addEventListener('click', resetEffectsAllWindows);
 
 buildColorPresets();
 applyBgColor(safeStorageGet(BG_COLOR_KEY, DEFAULT_BG_COLOR));
-applyTitleBgColor(safeStorageGet(TITLE_BG_COLOR_KEY, DEFAULT_TITLE_BG_COLOR));
 loadEffectSettings();
 fillGithubFiles();
 renderWindows();
